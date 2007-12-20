@@ -2,9 +2,9 @@ use strict;
 use warnings;
 
 package self;
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
-use v5.6.0;
+use 5.006;
 
 use Sub::Exporter -setup => {
     exports => [qw(self args)],
@@ -13,7 +13,6 @@ use Sub::Exporter -setup => {
     }
 };
 
-use YAML;
 sub _args {
     my $level = 2;
     my @c = ();
