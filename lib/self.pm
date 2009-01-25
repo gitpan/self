@@ -4,15 +4,18 @@ use warnings;
 package self;
 use 5.006;
 
-our $VERSION = '0.30';
+our $VERSION = '0.31';
 use Sub::Exporter;
 
-use B::Hooks::Parser;
+use Devel::Declare ();
 
 sub import {
     my ($class) = @_;
 
-    B::Hooks::Parser::inject('use B::OPCheck const => check => \&self::_check;');
+    my $linestr = Devel::Declare::get_linestr;
+    my $offset  = Devel::Declare::get_linestr_offset;
+    substr($linestr, $offset, 0) = 'use B::OPCheck const => check => \&self::_check;';
+    Devel::Declare::set_linestr($linestr);
 
     my $exporter = Sub::Exporter::build_exporter({
         into_level => 1,
@@ -23,18 +26,40 @@ sub import {
 }
 
 sub _check {
-    my $linestr = B::Hooks::Parser::get_linestr;
-    my $offset  = B::Hooks::Parser::get_linestr_offset;
+    my $op = shift;
+    return unless ref($op->gv) eq 'B::PV';
 
+    my $linestr = Devel::Declare::get_linestr;
+    my $offset  = Devel::Declare::get_linestr_offset;
+
+    my $code = 'my($self,@args)=@_;';
     if (substr($linestr, $offset, 3) eq 'sub') {
         my $line = substr($linestr, $offset);
          if ($line =~ m/^sub\s.*{ /x ) {
-            if (index($line, '{my($self,@args)=@_;') < 0) {
-                substr($line, index($line, '{') + 1, 0)  = 'my($self,@args)=@_;';
-                B::Hooks::Parser::inject($line);
+            if (index($line, "{$code") < 0) {
+                substr($linestr, $offset + index($line, '{') + 1, 0) = $code;
+                Devel::Declare::set_linestr($linestr);
             }
         }
     }
+
+    # This elsif block handles:
+    # sub foo
+    # {
+    # ...
+    # }
+    elsif (index($linestr, 'sub') >= 0) {
+        $offset += Devel::Declare::toke_skipspace($offset);
+
+        if ($linestr =~ /(sub.*?\n\s*{)/) {
+            my $pos = index($linestr, $1);
+            if ($pos + length($1) - 1 == $offset) {
+                substr($linestr, $offset + 1, 0) = $code;
+                Devel::Declare::set_linestr($linestr);
+            }
+        }
+    }
+
 }
 
 sub _args {
@@ -110,11 +135,18 @@ or L<Devel::Declare>.
 It also exports a C<self> and a C<args> functions. Basically C<self> is just
 equal to C<$_[0]>, and C<args> is just C<$_[1..$#_]>.
 
-For convienence (and for backward compatibility), these two functions
+For convienence (and backward compatibility), these two functions
 are exported by default. If you don't want them to be exported, you
 need to say:
 
     use self ();
+
+Since self.pm uses L<Sub::Exporter>, the exported <self> funciton
+can be renamed:
+
+    use self self => { -as => 'this' };
+
+For more information, see L<Sub::Exporter>.
 
 It is recommended to use variables instead, because it's much much
 faster. There's a benchmark program under "example" directory compare
@@ -145,7 +177,7 @@ self.pm requires no configuration files or environment variables.
 
 =head1 DEPENDENCIES
 
-C<B::OPCheck>, C<B::Hooks::Parser>, C<Sub::Exporter>
+C<B::OPCheck>, C<Devel::Declare>, C<Sub::Exporter>
 
 =head1 INCOMPATIBILITIES
 
@@ -153,25 +185,30 @@ None reported.
 
 =head1 BUGS AND LIMITATIONS
 
-However, in some cases, C<$self> and C<@args> may failed to be
-injected. At this point, please ensure that your sub declaration has
-its '{' at the same line like this:
+In some cases, C<$self> and C<@args> may failed to be injected.
+
+If you're using 0.30, please ensure that your sub declaration has its
+'{' at the same line like this:
 
     sub foo {
     }
 
-It's ok to have the entire sub in one line:
+Also it's ok to have the entire sub in one line:
 
     sub foo { }
 
-But this doesn't work yet:
+Please upgrade to 0.31 if you prefer this style of code:
 
    sub foo
    {
-       foo;
+       $self;
    }
 
-Neither does it work on methods generated in runtime. Remember, it's a
+Extra spaces around sub declarations are handled as much as possible,
+if you found any cases that it failed to work, please send me bug
+reports with your test cases.
+
+It does it work on methods generated in runtime. Remember, it's a
 compile-time code injection. For those cases, use C<self> function
 instead.
 

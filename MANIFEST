@@ -24,6 +24,8 @@ t/04.autoload.t
 t/0simple-var.t
 t/0simple.t
 t/benchmark.pl
+t/export-nofunctions.t
+t/export-renaming.t
 t/lib/AutoloadTest.pm
 t/lib/Counter.pm
 t/lib/EvalTest.pm
@@ -33,6 +35,13 @@ t/lib/Normal.pm
 t/lib2/Counter.pm
 t/lib2/Selfvar.pm
 t/selfvar.t
+t/space01.t
+t/space02.t
+t/space03.t
+t/space04.t
+t/space05.t
+t/space06.t
+t/space07.t
 xt/perlcritic.t
 xt/pod-coverage.t
 xt/pod.t
