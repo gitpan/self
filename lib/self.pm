@@ -4,18 +4,24 @@ use warnings;
 package self;
 use 5.006;
 
-our $VERSION = '0.32';
+our $VERSION = '0.33';
 use Sub::Exporter;
 
 use Devel::Declare ();
+use B::Hooks::Parser;
 
+my $NO_SELF;
+    
 sub import {
     my ($class) = @_;
+    my $caller = caller;
 
-    my $linestr = Devel::Declare::get_linestr;
-    my $offset  = Devel::Declare::get_linestr_offset;
+    B::Hooks::Parser::setup();
+
+    my $linestr = B::Hooks::Parser::get_linestr();
+    my $offset  = B::Hooks::Parser::get_linestr_offset();
     substr($linestr, $offset, 0) = 'use B::OPCheck const => check => \&self::_check;';
-    Devel::Declare::set_linestr($linestr);
+    B::Hooks::Parser::set_linestr($linestr);
 
     my $exporter = Sub::Exporter::build_exporter({
         into_level => 1,
@@ -25,12 +31,20 @@ sub import {
     $exporter->(@_);
 }
 
+sub unimport {
+    my ($class) = @_;
+    my $caller = caller;
+    $NO_SELF = 1;
+}
+
 sub _check {
     my $op = shift;
+    my $caller = caller;
+    return if $NO_SELF;
     return unless ref($op->gv) eq 'B::PV';
 
-    my $linestr = Devel::Declare::get_linestr;
-    my $offset  = Devel::Declare::get_linestr_offset;
+    my $linestr = B::Hooks::Parser::get_linestr;
+    my $offset  = B::Hooks::Parser::get_linestr_offset;
 
     my $code = 'my($self,@args)=@_;';
     if (substr($linestr, $offset, 3) eq 'sub') {
@@ -38,7 +52,7 @@ sub _check {
          if ($line =~ m/^sub\s.*{ /x ) {
             if (index($line, "{$code") < 0) {
                 substr($linestr, $offset + index($line, '{') + 1, 0) = $code;
-                Devel::Declare::set_linestr($linestr);
+                B::Hooks::Parser::set_linestr($linestr);
             }
         }
     }
@@ -50,12 +64,11 @@ sub _check {
     # }
     elsif (index($linestr, 'sub') >= 0) {
         $offset += Devel::Declare::toke_skipspace($offset);
-
         if ($linestr =~ /(sub.*?\n\s*{)/) {
             my $pos = index($linestr, $1);
             if ($pos + length($1) - 1 == $offset) {
                 substr($linestr, $offset + 1, 0) = $code;
-                Devel::Declare::set_linestr($linestr);
+                B::Hooks::Parser::set_linestr($linestr);
             }
         }
     }
@@ -224,9 +237,9 @@ Kang-min Liu  C<< <gugod@gugod.org> >>
 
 Copyright (c) 2007, 2008, 2009, Kang-min Liu C<< <gugod@gugod.org> >>.
 
-This module is free software; you can redistribute it and/or
-modify it under the same terms as Perl itself. See L<perlartistic>.
+This is free software, licensed under:
 
+    The MIT (X11) License
 
 =head1 DISCLAIMER OF WARRANTY
 

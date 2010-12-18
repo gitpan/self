@@ -1,4 +1,3 @@
-.shipit
 Changes
 examples/benchmark.pl
 examples/Counter.pm
@@ -13,6 +12,8 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/self.pm
+lib/self/implicit.pm
+LICENSE
 Makefile.PL
 MANIFEST			This list of files
 META.yml
@@ -26,6 +27,7 @@ t/0simple.t
 t/benchmark.pl
 t/export-nofunctions.t
 t/export-renaming.t
+t/implicit.t
 t/lib/AutoloadTest.pm
 t/lib/Counter.pm
 t/lib/EvalTest.pm
@@ -34,6 +36,7 @@ t/lib/InterpolationTest.pm
 t/lib/Normal.pm
 t/lib2/Counter.pm
 t/lib2/Selfvar.pm
+t/noself.t
 t/selfvar.t
 t/space01.t
 t/space02.t
