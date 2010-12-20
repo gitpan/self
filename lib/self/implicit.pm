@@ -7,7 +7,7 @@ use Devel::Declare ();
 use B::Hooks::Parser;
 use PadWalker qw(peek_my);
 
-our $VERSION = '0.33';
+our $VERSION = '0.34';
 
 my $NO_SELF;
 
